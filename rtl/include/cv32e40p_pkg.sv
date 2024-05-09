@@ -45,7 +45,7 @@ package cv32e40p_pkg;
   parameter OPCODE_JAL = 7'h6f;
   parameter OPCODE_AUIPC = 7'h17;
   parameter OPCODE_LUI = 7'h37;
-  parameter OPCODE_OP_FP = 7'h53;
+  parameter OPCODE_OP_FP = 7'h53; // to be used for bf16_min, bf16_max, bf16_fp32_conv, and fp32_bf16_conv instr
   parameter OPCODE_OP_FMADD = 7'h43;
   parameter OPCODE_OP_FNMADD = 7'h4f;
   parameter OPCODE_OP_FMSUB = 7'h47;
@@ -771,6 +771,7 @@ package cv32e40p_pkg;
   parameter bit C_XF16 = 1'b0;  // Is half-precision float extension (Xf16) enabled
   parameter bit C_XF16ALT = 1'b0; // Is alternative half-precision float extension (Xf16alt) enabled
   parameter bit C_XF8 = 1'b0;  // Is quarter-precision float extension (Xf8) enabled
+  parameter bit C_BF16 = 1'b1;  // Is half-precision float extension (bf16) enabled
   parameter bit C_XFVEC = 1'b0;  // Is vectorial float extension (Xfvec) enabled
 
   // Latency of FP operations: 0 = no pipe registers, 1 = 1 pipe register etc.
@@ -790,6 +791,7 @@ package cv32e40p_pkg;
   C_RVF ? 32 :  // F ext.
   C_XF16 ? 16 :  // Xf16 ext.
   C_XF16ALT ? 16 :  // Xf16alt ext.
+  C_BF16 ? 16 :  // bf16 ext.
   C_XF8 ? 8 :  // Xf8 ext.
   0;  // Unused in case of no FP
 

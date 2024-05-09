@@ -33,7 +33,7 @@ module cv32e40p_decoder
   parameter COREV_PULP        = 1,              // PULP ISA Extension (including PULP specific CSRs and hardware loop, excluding cv.elw)
   parameter COREV_CLUSTER     = 0,              // PULP ISA Extension cv.elw (need COREV_PULP = 1)
   parameter A_EXTENSION       = 0,
-  parameter FPU               = 0,
+  parameter FPU               = 1,
   parameter FPU_ADDMUL_LAT    = 0,
   parameter FPU_OTHERS_LAT    = 0,
   parameter ZFINX             = 0,
@@ -1135,13 +1135,20 @@ module cv32e40p_decoder
               fpu_op        = cv32e40p_fpu_pkg::F2F;
               fp_op_group   = CONV;
               // bits [22:20] used, other bits must be 0
-              if (instr_rdata_i[24:23]) illegal_insn_o = 1'b1;
+              // if (instr_rdata_i[24:23]) illegal_insn_o = 1'b1;
               // check source format
               unique case (instr_rdata_i[22:20])
                 // Only process instruction if corresponding extension is active (static)
                 3'b000: begin
-                  if (!(C_RVF && (C_XF16 || C_XF16ALT || C_XF8))) illegal_insn_o = 1'b1;
-                  fpu_src_fmt_o = cv32e40p_fpu_pkg::FP32;
+                  if(~C_BF16) begin
+                    if (!(C_RVF && (C_XF16 || C_XF16ALT || C_XF8))) illegal_insn_o = 1'b1;
+                    fpu_src_fmt_o = cv32e40p_fpu_pkg::FP32;
+                  end
+                  else begin
+                    fpu_src_fmt_o = cv32e40p_fpu_pkg::BF16;
+                    // set dst format to FP32
+                    fpu_dst_fmt_o = cv32e40p_fpu_pkg::FP32;
+                  end
                 end
                 3'b001: begin
                   if (~C_RVD) illegal_insn_o = 1'b1;
@@ -1152,8 +1159,15 @@ module cv32e40p_decoder
                   fpu_src_fmt_o = cv32e40p_fpu_pkg::FP16;
                 end
                 3'b110: begin
-                  if (~C_XF16ALT) illegal_insn_o = 1'b1;
-                  fpu_src_fmt_o = cv32e40p_fpu_pkg::FP16ALT;
+                  if(~C_BF16) begin
+                    if (~C_XF16ALT) illegal_insn_o = 1'b1;
+                    fpu_src_fmt_o = cv32e40p_fpu_pkg::FP16ALT;
+                  end
+                  else begin
+                    fpu_src_fmt_o = cv32e40p_fpu_pkg::FP32;
+                    // set dst format to FP32
+                    fpu_dst_fmt_o = cv32e40p_fpu_pkg::BF16;
+                  end
                 end
                 3'b011: begin
                   if (~C_XF8) illegal_insn_o = 1'b1;
@@ -1184,6 +1198,31 @@ module cv32e40p_decoder
               fp_op_group = ADDMUL;
               // set dst format to FP32
               fpu_dst_fmt_o = cv32e40p_fpu_pkg::FP32;
+            end
+            // bf16_min/max
+            5'b01101, 5'b01111: begin
+              if(C_BF16)begin
+                unique case (instr_rdata_i[28])
+                  1'b0: begin
+                    fpu_op        = cv32e40p_fpu_pkg::MINMAX;
+                    fp_rnd_mode_o = 3'b000; // min
+                    fp_op_group   = NONCOMP;
+                    check_fprm    = 1'b0; // instruction encoded in rm
+                    fpu_dst_fmt_o = cv32e40p_fpu_pkg::BF16;
+                    fpu_src_fmt_o = cv32e40p_fpu_pkg::BF16;
+                  end
+                  1'b1: begin
+                    fpu_op        = cv32e40p_fpu_pkg::MINMAX;
+                    fp_rnd_mode_o = 3'b001; // max
+                    fp_op_group   = NONCOMP;
+                    check_fprm    = 1'b0; // instruction encoded in rm
+                    fpu_dst_fmt_o = cv32e40p_fpu_pkg::BF16;
+                    fpu_src_fmt_o = cv32e40p_fpu_pkg::BF16;
+                  end
+                endcase
+              end
+              else
+                illegal_insn_o = 1;
             end
             // feq/flt/fle.fmt - FP Comparisons
             5'b10100: begin

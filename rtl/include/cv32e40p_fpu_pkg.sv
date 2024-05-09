@@ -50,7 +50,7 @@ package cv32e40p_fpu_pkg;
   // *NOTE:* Add new formats only at the end of the enumeration for backwards compatibilty!
 
 
-  localparam int unsigned NUM_FP_FORMATS = 5;  // change me to add formats
+  localparam int unsigned NUM_FP_FORMATS = 6;  // change me to add formats
   localparam int unsigned FP_FORMAT_BITS = $clog2(NUM_FP_FORMATS);
 
   // FP formats
@@ -59,7 +59,8 @@ package cv32e40p_fpu_pkg;
     FP64    = 'd1,
     FP16    = 'd2,
     FP8     = 'd3,
-    FP16ALT = 'd4
+    FP16ALT = 'd4,
+    BF16    = 'd5
     // add new formats here
   } fp_format_e;
 
